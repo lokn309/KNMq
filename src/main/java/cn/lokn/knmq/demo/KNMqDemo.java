@@ -1,9 +1,9 @@
 package cn.lokn.knmq.demo;
 
-import cn.lokn.knmq.core.KNBroker;
-import cn.lokn.knmq.core.KNConsumer;
-import cn.lokn.knmq.core.KNMessage;
-import cn.lokn.knmq.core.KNProducer;
+import cn.lokn.knmq.client.KNBroker;
+import cn.lokn.knmq.client.KNConsumer;
+import cn.lokn.knmq.model.KNMessage;
+import cn.lokn.knmq.client.KNProducer;
 
 import java.io.IOException;
 

@@ -1,4 +1,4 @@
-package cn.lokn.knmq.core;
+package cn.lokn.knmq.client;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

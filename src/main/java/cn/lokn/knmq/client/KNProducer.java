@@ -1,5 +1,6 @@
-package cn.lokn.knmq.core;
+package cn.lokn.knmq.client;
 
+import cn.lokn.knmq.model.KNMessage;
 import lombok.AllArgsConstructor;
 
 /**

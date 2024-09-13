@@ -1,4 +1,8 @@
-package cn.lokn.knmq.core;
+package cn.lokn.knmq.client;
+
+import cn.lokn.knmq.model.KNMessage;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @description: message consumer.
@@ -7,12 +11,16 @@ package cn.lokn.knmq.core;
  */
 public class KNConsumer<T> {
 
+    private String id;
     private KNBroker broker;
     private String topic;
     private KNMq mq;
 
+    static AtomicInteger idgen = new AtomicInteger(0);
+
     public KNConsumer(KNBroker broker) {
         this.broker = broker;
+        this.id = "CID" + idgen.getAndIncrement();
     }
 
     public void subscribe(String topic) {

@@ -1,3 +1,6 @@
 spring:
   application:
     name: knmq
+
+server:
+  port: 8765
