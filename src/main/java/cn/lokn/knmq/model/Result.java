@@ -3,6 +3,8 @@ package cn.lokn.knmq.model;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * @description: Result for MQServer.
  * @author: lokn
@@ -31,5 +33,10 @@ public class Result<T> {
     public static Result<KNMessage<?>> msg(KNMessage<?> msg) {
         return new Result<>(1, msg);
     }
+
+    public static Result<List<KNMessage<?>>> msg(List<KNMessage<?>> msg) {
+        return new Result<>(1, msg);
+    }
+
 
 }

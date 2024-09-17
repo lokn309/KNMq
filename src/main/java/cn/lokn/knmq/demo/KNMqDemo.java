@@ -4,6 +4,7 @@ import cn.lokn.knmq.client.KNBroker;
 import cn.lokn.knmq.client.KNConsumer;
 import cn.lokn.knmq.model.KNMessage;
 import cn.lokn.knmq.client.KNProducer;
+import com.alibaba.fastjson.JSON;
 
 import java.io.IOException;
 
@@ -18,26 +19,28 @@ public class KNMqDemo {
 
         long ids = 0;
 
-        String topic = "kn.order";
-        KNBroker broker = new KNBroker();
-        broker.createTopic(topic);
+        String topic = "cn.lokn.test";
+        KNBroker broker = KNBroker.Default;
+//        broker.createTopic(topic);
 
         KNProducer producer = broker.createProducer();
         KNConsumer<?> consumer = broker.createConsumers(topic);
-        consumer.subscribe(topic);
-        consumer.listen(message -> {
+        consumer.listen(topic, message -> {
             System.out.println(" onMessage => " + message);
         });
 
-        for (int i = 0; i < 10; i++) {
-            Order order = new Order(ids , "item" + ids, 100 * ids);
-            producer.send(topic, new KNMessage<>(ids++, order, null));
-        }
+//        KNConsumer<?> consumer = broker.createConsumers(topic);
 
         for (int i = 0; i < 10; i++) {
-            KNMessage<Order> msg = (KNMessage<Order>) consumer.poll(1000);
-            System.out.println(msg);
+            Order order = new Order(ids , "item" + ids, 100 * ids);
+            producer.send(topic, new KNMessage<>(ids++, JSON.toJSONString(order), null));
         }
+
+//        for (int i = 0; i < 10; i++) {
+//            KNMessage<?> msg = consumer.recv(topic);
+//            System.out.println(msg);
+//            consumer.ack(topic, msg);
+//        }
 
         while (true) {
             char c = (char) System.in.read();
@@ -46,19 +49,19 @@ public class KNMqDemo {
             }
             if ('p' == c) {
                 Order order = new Order(ids, "item" + ids, ids * 100);
-                producer.send(topic, new KNMessage<>(ids++, order, null));
-                System.out.println(" send ok => " + order);
+                producer.send(topic, new KNMessage<>(ids++, JSON.toJSONString(order), null));
+                System.out.println(" produce ok => " + order);
             }
-            if ('c' == c) {
-                KNMessage<Order> message = (KNMessage<Order>) consumer.poll(1000);
-                System.out.println(" poll ok => " + message);
-            }
+//            if ('c' == c) {
+//                KNMessage<Order> message = (KNMessage<Order>) consumer.recv(topic);
+//                System.out.println(" consumer ok => " + message);
+//            }
             if ('a' == c) {
                 for (int i = 0; i < 10; i++) {
                     Order order = new Order(ids , "item" + ids, 100 * ids);
-                    producer.send(topic, new KNMessage<>(ids++, order, null));
+                    producer.send(topic, new KNMessage<>(ids++, JSON.toJSONString(order), null));
                 }
-                System.out.println(" send 10 orders...");
+                System.out.println(" produce 10 orders...");
             }
         }
 

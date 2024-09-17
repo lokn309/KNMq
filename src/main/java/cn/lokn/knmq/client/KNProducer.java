@@ -14,9 +14,7 @@ public class KNProducer {
     KNBroker broker;
 
     public boolean send(String topic, KNMessage message) {
-        KNMq mq = broker.find(topic);
-        if (mq == null) throw new RuntimeException("topic no found");
-        return mq.send(message);
+        return broker.send(topic, message);
     }
 
 }

@@ -1,0 +1,16 @@
+### sub
+GET http://localhost:8765/knmq/sub?t=a&cid=kn
+
+### send
+POST http://localhost:8765/knmq/send?t=a&cid=kn
+Content-Type: application/json
+
+{
+  "body": "{\"id\": \"1\", \"item\": \"item1\", \"price\": 3.0}"
+}
+
+### recv
+GET http://localhost:8765/knmq/recv?t=a&cid=kn
+
+### ack
+GET http://localhost:8765/knmq/ack?t=a&cid=kn&offset=2

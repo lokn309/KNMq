@@ -18,6 +18,7 @@ public class MessageQueue {
     private static String TEST_TOPIC = "cn.lokn.test";
     static {
         queues.put(TEST_TOPIC, new MessageQueue(TEST_TOPIC));
+        queues.put("a", new MessageQueue("a"));
     }
 
     private Map<String, MessageSubscription> subscriptions = new HashMap<>();
@@ -29,8 +30,32 @@ public class MessageQueue {
         this.topic = topic;
     }
 
+    public static List<KNMessage<?>> batch(String topic, String consumerId, int size) {
+        MessageQueue messageQueue = queues.get(topic);
+        if (messageQueue == null) throw new RuntimeException("topic not found");
+        if (messageQueue.subscriptions.containsKey(consumerId)) {
+            int ind = messageQueue.subscriptions.get(consumerId).getOffset();
+            int offset = ind + 1;
+            List<KNMessage<?>> result = new ArrayList<>();
+            KNMessage<?> recv = messageQueue.recv(offset);
+            while (recv != null) {
+                result.add(recv);
+                recv = messageQueue.recv(++offset);
+                if (result.size() >= size) {
+                    break;
+                }
+            }
+            System.out.println(" ===>> recv: topic/cid/size = " + topic + "/" + consumerId + "/" + result.size());
+            System.out.println(" ===>> last message = " + recv);
+            return result;
+        }
+        throw new RuntimeException("subscriptions not found for topic/consumerId = "
+                + topic + "/" + consumerId);
+    }
+
     public int send(KNMessage<?> message) {
         if (index >= queue.length) return -1;
+        message.getHeaders().put("X-offset", String.valueOf(index));
         queue[index++] = message;
         return index;
     }
@@ -54,18 +79,21 @@ public class MessageQueue {
 
     public static void sub(MessageSubscription subscription) {
         MessageQueue messageQueue = queues.get(subscription.getTopic());
+        System.out.println(" ===>> sub: " + subscription);
         if (messageQueue == null) throw new RuntimeException("topic not found");
         messageQueue.subscribe(subscription);
     }
 
     public static void unsub(MessageSubscription subscription) {
         MessageQueue messageQueue = queues.get(subscription.getTopic());
+        System.out.println(" ===>> unsub: " + subscription);
         if (messageQueue == null) return ;
         messageQueue.unsubscribe(subscription);
     }
 
-    public static int send(String topic, String consumerId, KNMessage<String> message) {
+    public static int send(String topic, KNMessage<String> message) {
         MessageQueue messageQueue = queues.get(topic);
+        System.out.println(" ===>> send: topic/message = " + topic + "/" + message);
         if (messageQueue == null) throw new RuntimeException("topic not found");
         return messageQueue.send(message);
     }
@@ -86,7 +114,10 @@ public class MessageQueue {
         if (messageQueue == null) throw new RuntimeException("topic not found");
         if (messageQueue.subscriptions.containsKey(consumerId)) {
             int ind = messageQueue.subscriptions.get(consumerId).getOffset();
-            return messageQueue.recv(ind);
+            KNMessage<?> recv = messageQueue.recv(ind + 1);
+            System.out.println(" ===>> recv: topic/cid/ind = " + topic + "/" + consumerId + "/" + ind);
+            System.out.println(" ===>> message = " + recv);
+            return recv;
         }
         throw new RuntimeException("subscriptions not found for topic/consumerId = "
                 + topic + "/" + consumerId);
@@ -98,6 +129,7 @@ public class MessageQueue {
         if (messageQueue.subscriptions.containsKey(consumerId)) {
             MessageSubscription messageSubscription = messageQueue.subscriptions.get(consumerId);
             if (offset > messageSubscription.getOffset() && offset <= messageQueue.index) {
+                System.out.println(" ===>> ack: topic/cid/offset = " + topic + "/" + consumerId + "/" + offset);
                 messageSubscription.setOffset(offset);
                 return offset;
             }

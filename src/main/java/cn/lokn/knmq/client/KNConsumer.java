@@ -1,6 +1,7 @@
 package cn.lokn.knmq.client;
 
 import cn.lokn.knmq.model.KNMessage;
+import lombok.Getter;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -13,7 +14,6 @@ public class KNConsumer<T> {
 
     private String id;
     private KNBroker broker;
-    private String topic;
     private KNMq mq;
 
     static AtomicInteger idgen = new AtomicInteger(0);
@@ -23,18 +23,33 @@ public class KNConsumer<T> {
         this.id = "CID" + idgen.getAndIncrement();
     }
 
-    public void subscribe(String topic) {
-        this.topic = topic;
-        mq = broker.find(topic);
-        if (mq == null) throw new RuntimeException("topic not found");
+    public void sub(String topic) {
+        broker.sub(topic, id);
     }
 
-    public KNMessage<T> poll(long timeout) {
-        return mq.poll(timeout);
+    public void unsub(String topic) {
+        broker.unsub(topic, id);
     }
 
-    public void listen(KNListener<T> listener) {
-        mq.addListener(listener);
+    public KNMessage<T> recv(String topic) {
+        return broker.recv(topic, id);
     }
+
+    public boolean ack(String topic, int offset) {
+        return broker.ack(topic, id, offset);
+    }
+
+    public boolean ack(String topic, KNMessage<?> message) {
+        int offset = Integer.valueOf(message.getHeaders().get("X-offset"));
+        return ack(topic, offset);
+    }
+
+    public void listen(String topic, KNListener<T> listener) {
+        this.listener = listener;
+        broker.addConsumer(topic, this);
+    }
+
+    @Getter
+    private KNListener listener;
 
 }

@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -21,7 +22,7 @@ public class KNMessage<T> {
     //private String topic;
     private Long id;
     private T body;
-    private Map<String, String> headers;    // 系统属性
+    private Map<String, String> headers = new HashMap<>();    // 系统属性
     //private Map<String, String> properties;   // 业务属性
 
     public static long getId() {
