@@ -1,6 +1,9 @@
 package cn.lokn.knmq.server;
 
 import cn.lokn.knmq.model.KNMessage;
+import cn.lokn.knmq.store.Indexer;
+import cn.lokn.knmq.store.Store;
+import com.alibaba.fastjson.JSON;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,21 +26,28 @@ public class MessageQueue {
 
     private Map<String, MessageSubscription> subscriptions = new HashMap<>();
     private String topic;
-    private KNMessage<?>[] queue = new KNMessage<?>[1024 * 10];
-    private int index;
+//    private KNMessage<?>[] queue = new KNMessage<?>[1024 * 10];
+    private Store store = null;
+//    private int index;
 
     public MessageQueue(String topic) {
         this.topic = topic;
+        this.store = new Store(topic);
+        store.init();
     }
 
     public static List<KNMessage<?>> batch(String topic, String consumerId, int size) {
         MessageQueue messageQueue = queues.get(topic);
         if (messageQueue == null) throw new RuntimeException("topic not found");
         if (messageQueue.subscriptions.containsKey(consumerId)) {
-            int ind = messageQueue.subscriptions.get(consumerId).getOffset();
-            int offset = ind + 1;
+            int offset = messageQueue.subscriptions.get(consumerId).getOffset();
+            int nextOffset = 0;
+            if (offset > -1) {
+                Indexer.Entry entry = Indexer.getEntry(topic, offset);
+                nextOffset = offset + entry.getLength();
+            }
+            KNMessage<?> recv = messageQueue.recv(nextOffset);
             List<KNMessage<?>> result = new ArrayList<>();
-            KNMessage<?> recv = messageQueue.recv(offset);
             while (recv != null) {
                 result.add(recv);
                 recv = messageQueue.recv(++offset);
@@ -53,18 +63,15 @@ public class MessageQueue {
                 + topic + "/" + consumerId);
     }
 
-    public int send(KNMessage<?> message) {
-        if (index >= queue.length) return -1;
-        message.getHeaders().put("X-offset", String.valueOf(index));
-        queue[index++] = message;
-        return index;
+    public int send(KNMessage<String> message) {
+        int offset = store.pos();
+        message.getHeaders().put("X-offset", String.valueOf(offset));
+        store.write(message);
+        return offset;
     }
 
-    public KNMessage<?> recv(int ind) {
-        if (ind <= index) {
-            return queue[ind];
-        }
-        return null;
+    public KNMessage<?> recv(int offset) {
+        return store.read(offset);
     }
 
     public void subscribe(MessageSubscription subscription) {
@@ -93,16 +100,16 @@ public class MessageQueue {
 
     public static int send(String topic, KNMessage<String> message) {
         MessageQueue messageQueue = queues.get(topic);
-        System.out.println(" ===>> send: topic/message = " + topic + "/" + message);
+        System.out.println(" ***===>> send: topic/message = " + topic + "/" + message);
         if (messageQueue == null) throw new RuntimeException("topic not found");
         return messageQueue.send(message);
     }
 
-    public static KNMessage<?> recv(String topic, String consumerId, int ind) {
+    public static KNMessage<?> recv(String topic, String consumerId, int offset) {
         MessageQueue messageQueue = queues.get(topic);
         if (messageQueue == null) throw new RuntimeException("topic not found");
         if (messageQueue.subscriptions.containsKey(consumerId)) {
-            return messageQueue.recv(ind);
+            return messageQueue.recv(offset);
         }
         throw new RuntimeException("subscriptions not found for topic/consumerId = "
                 + topic + "/" + consumerId);
@@ -113,9 +120,14 @@ public class MessageQueue {
         MessageQueue messageQueue = queues.get(topic);
         if (messageQueue == null) throw new RuntimeException("topic not found");
         if (messageQueue.subscriptions.containsKey(consumerId)) {
-            int ind = messageQueue.subscriptions.get(consumerId).getOffset();
-            KNMessage<?> recv = messageQueue.recv(ind + 1);
-            System.out.println(" ===>> recv: topic/cid/ind = " + topic + "/" + consumerId + "/" + ind);
+            int offset = messageQueue.subscriptions.get(consumerId).getOffset();
+            int nextOffset = 0;
+            if (offset > -1) {
+                Indexer.Entry entry = Indexer.getEntry(topic, offset);
+                nextOffset = offset + entry.getLength();
+            }
+            KNMessage<?> recv = messageQueue.recv(nextOffset);
+            System.out.println(" ===>> recv: topic/cid/ind = " + topic + "/" + consumerId + "/" + nextOffset);
             System.out.println(" ===>> message = " + recv);
             return recv;
         }
@@ -128,7 +140,7 @@ public class MessageQueue {
         if (messageQueue == null) throw new RuntimeException("topic not found");
         if (messageQueue.subscriptions.containsKey(consumerId)) {
             MessageSubscription messageSubscription = messageQueue.subscriptions.get(consumerId);
-            if (offset > messageSubscription.getOffset() && offset <= messageQueue.index) {
+            if (offset > messageSubscription.getOffset() && offset < Store.LEN) {
                 System.out.println(" ===>> ack: topic/cid/offset = " + topic + "/" + consumerId + "/" + offset);
                 messageSubscription.setOffset(offset);
                 return offset;

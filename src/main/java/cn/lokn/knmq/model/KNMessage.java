@@ -25,12 +25,12 @@ public class KNMessage<T> {
     private Map<String, String> headers = new HashMap<>();    // 系统属性
     //private Map<String, String> properties;   // 业务属性
 
-    public static long getId() {
+    public static long nextId() {
         return idgen.getAndIncrement();
     }
 
     public static KNMessage<?> create(String body, Map<String, String > headers) {
-        return new KNMessage<>(getId(), body, headers);
+        return new KNMessage<>(nextId(), body, headers);
     }
 
 }

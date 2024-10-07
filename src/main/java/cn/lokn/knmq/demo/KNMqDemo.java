@@ -24,23 +24,23 @@ public class KNMqDemo {
 //        broker.createTopic(topic);
 
         KNProducer producer = broker.createProducer();
-        KNConsumer<?> consumer = broker.createConsumers(topic);
-        consumer.listen(topic, message -> {
-            System.out.println(" onMessage => " + message);
-        });
-
 //        KNConsumer<?> consumer = broker.createConsumers(topic);
+//        consumer.listen(topic, message -> {
+//            System.out.println(" onMessage => " + message);
+//        });
+
+        KNConsumer<?> consumer = broker.createConsumers(topic);
 
         for (int i = 0; i < 10; i++) {
             Order order = new Order(ids , "item" + ids, 100 * ids);
             producer.send(topic, new KNMessage<>(ids++, JSON.toJSONString(order), null));
         }
 
-//        for (int i = 0; i < 10; i++) {
-//            KNMessage<?> msg = consumer.recv(topic);
-//            System.out.println(msg);
-//            consumer.ack(topic, msg);
-//        }
+        for (int i = 0; i < 10; i++) {
+            KNMessage<?> msg = consumer.recv(topic);
+            System.out.println(msg);
+            consumer.ack(topic, msg);
+        }
 
         while (true) {
             char c = (char) System.in.read();
